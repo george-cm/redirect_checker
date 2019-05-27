@@ -1,0 +1,13 @@
+Include
+Lib
+Scripts
+sent_to_capgemini
+sent_to_capgemini - Copy
+tcl
+LICENSE.txt
+redirect_checker.zip
+__pycache__
+build
+dist
+*.log
+redirect_check.spec
