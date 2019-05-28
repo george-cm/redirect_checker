@@ -12,20 +12,6 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 MAX_REDIRECTS = 10
 
-# change these to match the path to your cvs input files and csv output files
-csv_files = [
-  {'input_csv': 'sent_to_capgemini\\Uvex_redirects_20190517.csv', 
-    'output_csv': 'sent_to_capgemini\\Uvex_redirects_20190517_checked.csv'},
-  {'input_csv': 'sent_to_capgemini\\howardleight_mappingdocument GE v2.csv', 
-    'output_csv': 'sent_to_capgemini\\howardleight_mappingdocument GE v2_checked.csv'},
-  {'input_csv': 'sent_to_capgemini\\May Redirects Salisbury 5.17.19.csv', 
-    'output_csv': 'sent_to_capgemini\\May Redirects Salisbury 5.17.19_checked.csv'},
-  {'input_csv': 'sent_to_capgemini\\May Redirects Salisbury 5.17.19.csv', 
-    'output_csv': 'sent_to_capgemini\\May Redirects Salisbury 5.17.19_checked.csv'},
-  {'input_csv': 'sent_to_capgemini\\raesystems_redirects.csv', 
-    'output_csv': 'sent_to_capgemini\\raesystems_redirects_checked.csv'}
-]
-
 def check_redirect(req_session, source_url, target_url, logger):
   result = []
   redirect_chain = []
