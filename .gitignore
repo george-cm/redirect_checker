@@ -11,3 +11,4 @@ build
 dist
 *.log
 redirect_check.spec
+redirect_check_dist
