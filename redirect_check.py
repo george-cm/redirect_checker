@@ -12,21 +12,23 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 MAX_REDIRECTS = 10
 
-def check_redirect(req_session, source_url, target_url, logger):
+def check_redirect(req_session, source_url, target_url, logger, auth=None):
   result = []
   redirect_chain = []
   if target_url[-1] == '/':
     target_url = target_url[:-1]
 
   # processing the query string in order to reattach it to the target_url
-  parsed = urlparse.urlparse(source_url)
-  query_string = parsed.query
-  if query_string:
-    target_url = target_url + '?' + query_string
+  # source_parsed = urlparse.urlparse(source_url)
+  # source_query_string = source_parsed.query
+  # target_parsed = urlparse.urlparse(source_url)
+  # target_query_string = target_parsed.query
+  # if source_query_string and target_query_string:
+  #   target_url = target_url + '?' + query_string
 
   # print(target_url)
   try:
-    req = req_session.get(source_url, allow_redirects=True, verify=False)
+    req = req_session.get(source_url, allow_redirects=True, verify=False, auth=auth)
 
     if len(req.history) != 0:
       for res in req.history:
@@ -50,10 +52,16 @@ def check_redirect(req_session, source_url, target_url, logger):
   return result
 
 def main():
-  parser = argparse.ArgumentParser(description="Check a list of redirects mapped from a source url to a target url.\nThe input is a CSV file containing two colums: source url and target url. The")
+  parser = argparse.ArgumentParser(description="""Check a list of redirects mapped from a source url to a target url.
+The input must be a CSV file containing two colums: source url and target url.
+The output file will be saved in the same directory as the input file and the
+output file name will be <input_filename>_YYYYMMDDhhmmss.csv""",
+epilog="""""", formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument("file_name", help="name of the CSV file to be processed")
-  parser.add_argument("-H", "--no-header-row", help="use when the input CSV file doesn't contain a header row", action='store_true', dest='no_header')
+  parser.add_argument("-H", "--no-header-row", help="use when the input CSV file doesn't contain a header row", action='store_true', dest='no_header')  
   parser.add_argument("-l", "--log-file", help="name of the log file", default='', dest='log_file')
+  parser.add_argument("-u", "--username", help="username for simple HTTP authentication", dest='username')
+  parser.add_argument("-p", "--password", help="password for simple HTTP authentication", dest='password')
   args = parser.parse_args()
 
   if args.file_name is not None and args.file_name[-3:] == "csv":    
@@ -88,6 +96,8 @@ def main():
   s = requests.Session()
   s.max_redirects = MAX_REDIRECTS
 
+  auth = (args.username, args.password)
+
   output_file = file_name[:-4] + '_' + '{:%Y%m%d%H%M%S}'.format(datetime.now()) + '.csv'
   # for csv_file in csv_files:
   with open(file_name, newline='') as input_csvfile:
@@ -102,7 +112,7 @@ def main():
           if idx == 0:
             continue
         # print(f'Checking: {row[0]}')
-        result = check_redirect(s, row[0], row[1], logger)
+        result = check_redirect(s, row[0], row[1], logger, auth)
         # print(f'status_code: {result[0]}, matches: {result[1]}, chain: {"|".join(result[2])}')
         logger.info(f'status_code: {result[0]}, matches: {result[1]}, source_url: "{row[0]}", chain: {"|".join(result[2])}')
         writer.writerow([row[0], row[1], result[0], result[1], '|'.join(result[2])])
