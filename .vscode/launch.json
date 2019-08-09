@@ -4,12 +4,20 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
+    // {"name":"Python: Current File","type":"python","request":"launch","program":"${file}","console":"integratedTerminal"},
     {
       "name": "Python: Current File",
       "type": "python",
       "request": "launch",
       "program": "${file}",
-      "console": "integratedTerminal"
+      "console": "integratedTerminal",
+      "pythonPath": "${workspaceFolder}/Scripts/python.exe",
+      "args": [
+        "c:/Users/e313532/OneDrive - Honeywell/SPS/Joule/Industrial Safety/Redirects/redirect_checker/sent_to_capgemini/inputs/RAE_stage_industrialsafety.csv",
+        "-uclient",
+        "-paccess",
+        "-lrae_redirects.log"
+      ]
     }
   ]
 }
