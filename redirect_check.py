@@ -12,12 +12,11 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 MAX_REDIRECTS = 10
 
-def check_redirect(req_session, source_url, target_url, logger, auth=None):
+def check_redirect(req_session, source_url, target_url, logger, auth=None, retries=30):
   result = []
   redirect_chain = []
   if target_url[-1] == '/':
     target_url = target_url[:-1]
-
   # processing the query string in order to reattach it to the target_url
   # source_parsed = urlparse.urlparse(source_url)
   # source_query_string = source_parsed.query
@@ -27,29 +26,37 @@ def check_redirect(req_session, source_url, target_url, logger, auth=None):
   #   target_url = target_url + '?' + query_string
 
   # print(target_url)
-  try:
-    req = req_session.get(source_url, allow_redirects=True, verify=False, auth=auth)
-
-    if len(req.history) != 0:
-      for res in req.history:
-        Location = res.headers['Location']
-        # print(Location)
-        redirect_chain.append(Location)
-        if Location == target_url:
-          result.append(res.status_code)
-          result.append('yes')
-          # print('Redirect matches the list.')
-          # print(f'Redirect status code: {res.status_code}')
-      if not result:
-        result = ['n/a', 'no']
-      result.append(redirect_chain)
-    else:
-      result = [req.status_code, 'no', [f'No redirects found']]
-  except (requests.exceptions.TooManyRedirects) as e:
-    # print(f'Error while processing source url: {source_url}. Error details: {e}')
-    logger.error(f'Error while processing source url: {source_url}', exc_info=True)
-    result = ['n/a', 'no', [f'Exeeded {MAX_REDIRECTS} redirects']]
-  return result
+  for retry in range(retries):
+    try:
+      # import pdb; pdb.set_trace()
+      req = req_session.get(source_url, allow_redirects=True, verify=False, auth=auth)
+      if len(req.history) != 0:
+        for res in req.history:
+          Location = res.headers['Location']
+          # print(Location)
+          redirect_chain.append(Location)
+          if Location == target_url:
+            result.append(res.status_code)
+            result.append('yes')
+            # print('Redirect matches the list.')
+            # print(f'Redirect status code: {res.status_code}')
+        if not result:
+          result = ['n/a', 'no']
+        result.append(redirect_chain)
+      else:
+        result = [req.status_code, 'no', [f'No redirects found']]
+    except (requests.exceptions.TooManyRedirects) as e:
+      # print(f'Error while processing source url: {source_url}. Error details: {e}')
+      logger.error(f'Error while processing source url: {source_url}', exc_info=True)
+      result = ['n/a', 'no', [f'Exeeded {MAX_REDIRECTS} redirects']]
+    except (requests.exceptions.ConnectionError) as e:
+      if retry < (retries - 1):
+        logger.warning(f'Connection Error while processing source url: {source_url}, retrying ({retry + 1})')
+        continue
+      else:
+        logger.error(f'Connection Error while processing source url: {source_url}, retrying ({retry + 1})', exc_info=True)
+        raise
+    return result
 
 def main():
   parser = argparse.ArgumentParser(description="""Check a list of redirects mapped from a source url to a target url.
@@ -63,7 +70,7 @@ epilog="""""", formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument("-u", "--username", help="username for simple HTTP authentication", dest='username')
   parser.add_argument("-p", "--password", help="password for simple HTTP authentication", dest='password')
   args = parser.parse_args()
-
+  
   if args.file_name is not None and args.file_name[-3:] == "csv":    
     file_name = args.file_name
   else:
@@ -100,9 +107,9 @@ epilog="""""", formatter_class=argparse.RawTextHelpFormatter)
 
   output_file = file_name[:-4] + '_' + '{:%Y%m%d%H%M%S}'.format(datetime.now()) + '.csv'
   # for csv_file in csv_files:
-  with open(file_name, newline='') as input_csvfile:
+  with open(file_name, encoding='utf-8-sig') as input_csvfile:
     reader = csv.reader(input_csvfile, delimiter=',', quotechar='"')
-    with open(output_file, 'w', newline='') as output_csvfile:
+    with open(output_file, 'w', encoding='utf-8-sig', newline='') as output_csvfile:
       writer = csv.writer(output_csvfile, delimiter=',', 
                           quotechar='"', quoting=csv.QUOTE_MINIMAL)
       writer.writerow(['Source Url', 'Target Url', 'Redirect Code', 
@@ -112,7 +119,7 @@ epilog="""""", formatter_class=argparse.RawTextHelpFormatter)
           if idx == 0:
             continue
         # print(f'Checking: {row[0]}')
-        result = check_redirect(s, row[0], row[1], logger, auth)
+        result = check_redirect(s, row[0], row[1], logger, auth, 200)
         # print(f'status_code: {result[0]}, matches: {result[1]}, chain: {"|".join(result[2])}')
         logger.info(f'status_code: {result[0]}, matches: {result[1]}, source_url: "{row[0]}", chain: {"|".join(result[2])}')
         writer.writerow([row[0], row[1], result[0], result[1], '|'.join(result[2])])
