@@ -13,10 +13,10 @@
       "console": "integratedTerminal",
       "pythonPath": "${workspaceFolder}/Scripts/python.exe",
       "args": [
-        "c:/Users/e313532/OneDrive - Honeywell/SPS/Joule/Industrial Safety/Redirects/redirect_checker/sent_to_capgemini/inputs/RAE_stage_industrialsafety.csv",
+        "c:\\Users\\e313532\\OneDrive - Honeywell\\SPS\\Joule\\Industrial Safety\\SEO\\From Stefi\\page_titles_duplicate-new-redirects-29.01.2020_test.csv",
         "-uclient",
         "-paccess",
-        "-lrae_redirects.log"
+        "-ltest.log"
       ]
     }
   ]
