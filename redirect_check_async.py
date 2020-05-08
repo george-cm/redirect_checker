@@ -1,6 +1,6 @@
 import requests
 import csv
-import urllib3
+# import urllib3
 import sys
 import urllib.parse as urlparse
 import argparse
@@ -11,9 +11,23 @@ import chardet
 from requests_html import AsyncHTMLSession
 from pprint import pprint
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+# urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+from urllib3.exceptions import InsecureRequestWarning
+
+# Suppress only the single warning from urllib3 needed.
+requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
 MAX_REDIRECTS = 10
+
+
+class TooManyRedirectsResponse(requests.Response):
+    
+    def __init__(self):
+      self.status_code = 'too many redirects'
+      self.history = []
+
+too_many_redirects_reponse = TooManyRedirectsResponse()
 
 def detect_encoding(fname):
     import chardet
@@ -52,7 +66,7 @@ def check_redirect(response, source_url, target_url):
     #   result = ['n/a', 'no', []]
     result.append(redirect_chain)
   else:
-    result = [response.status_code, 'no', [f'No redirects found']]
+    result = [response.status_code, 'no', [f'No redirects found']]  
   return result
 
 def main():
@@ -177,8 +191,11 @@ def get_next_n(n):
 
 def create_request(asession, source_url, target_url):
   async def _req():
-    r = await asession.get(source_url)
-    return r, source_url, target_url
+    try:
+      r = await asession.get(source_url, verify=False)
+      return r, source_url, target_url
+    except requests.exceptions.TooManyRedirects:
+      return too_many_redirects_reponse, source_url, target_url
   return _req
 
 if __name__ == "__main__":
