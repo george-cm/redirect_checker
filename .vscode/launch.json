@@ -13,10 +13,10 @@
       "console": "integratedTerminal",
       "pythonPath": "${workspaceFolder}/Scripts/python.exe",
       "args": [
-        "c:\\Users\\e313532\\OneDrive - Honeywell\\SPS\\Joule\\Industrial Safety\\SEO\\From Stefi\\page_titles_duplicate-new-redirects-29.01.2020_test.csv",
-        "-uclient",
-        "-paccess",
-        "-ltest.log"
+        "c:\\Users\\e313532\\Documents\\Projects\\aem_dam\\dispatcher\\redirects_test\\tests_all_redirects.csv",
+        "-l=c:\\Users\\e313532\\Documents\\Projects\\aem_dam\\dispatcher\\redirects_test\\tests_all_redirects.csv.log",
+        "-sr=https://mysafety.honeywell.com!!https://dpublish-his.aws.aem.honeywell.com",
+        "-tr=https://mysafety.honeywell.com!!https://dpublish-his.aws.aem.honeywell.com",  
       ]
     }
   ]
