@@ -28,9 +28,15 @@ class TooManyRedirectsResponse(requests.Response):
         self.status_code = 'too many redirects'
         self.history = []
 
+class EmptySourceUrlResponse(requests.Response):
+
+    def __init__(self):
+        self.status_code = 'source url is missing'
+        self.history = []
+
 
 too_many_redirects_reponse = TooManyRedirectsResponse()
-
+empty_source_url_response = EmptySourceUrlResponse()
 
 def detect_encoding(fname):
     import chardet
@@ -86,13 +92,19 @@ def get_next_n(n):
     return _getnext_n
 
 
-def create_request(asession, source_url, target_url):
+def create_request(asession, source_url, target_url, logger, auth=None):
     async def _req():
+        if not source_url:
+            return empty_source_url_response, source_url, target_url
         try:
-            r = await asession.get(source_url, verify=False)
+            logger.info(f"Requesting {source_url}")
+            r = await asession.get(source_url, verify=False, auth=auth)
+            logger.info(f"Response received for {source_url}")
             return r, source_url, target_url
         except requests.exceptions.TooManyRedirects:
             return too_many_redirects_reponse, source_url, target_url
+        except KeyboardInterrupt as e:
+            raise e
     return _req
 
 def get_logger(log_file=None):
@@ -104,7 +116,7 @@ def get_logger(log_file=None):
     formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s: %(message)s')
     # checking if a log file was passed as argument
-    handler = logging.FileHandler(log_file)
+    handler = logging.FileHandler(log_file, encoding='utf-8')
     handler.setLevel(logging.INFO)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
@@ -137,6 +149,8 @@ output file name will be <input_filename>_YYYYMMDDhhmmss.csv""",
         "-sr", "--source-replacement", help="string replacement pair for the source urls.\nFormat: string-to-replace!!replacement", dest='source_replacement')
     parser.add_argument(
         "-tr", "--target-replacement", help="string replacement pair for the target urls.\nFormat: string-to-replace!!replacement", dest='target_replacement')
+    parser.add_argument(
+        "-cr", "--concurrent-requests", help="number of concurent requests to make.\n Deftault 100", type=int, default=100, dest='concurrent_requests')
     args = parser.parse_args()
 
     # checking if a log file was passed as argument
@@ -174,7 +188,7 @@ output file name will be <input_filename>_YYYYMMDDhhmmss.csv""",
         '{:%Y%m%d%H%M%S}'.format(datetime.now()) + '.csv'
     # for csv_file in csv_files:
 
-    concurrent_requests = 100
+    concurrent_requests = args.concurrent_requests
 
     enc = detect_encoding(file_name)
     with open(file_name, encoding=enc) as input_csvfile:
@@ -209,7 +223,10 @@ output file name will be <input_filename>_YYYYMMDDhhmmss.csv""",
                         sub = target_replacement_lst[0]
                         replacement = target_replacement_lst[1]
                         target_url = target_url.replace(sub, replacement)
-                    req_pool.append(create_request(asession, source_url, target_url))
+                    if args.username and args.password:
+                        req_pool.append(create_request(asession, source_url, target_url, logger, auth=auth))
+                    else:
+                        req_pool.append(create_request(asession, source_url, target_url, logger))
                 total = len(req_pool)
                 logger.info(f"Requesting batch {batch} of {total_batches} | {total} requests in the batch")
                 responses = asession.run(*req_pool)
