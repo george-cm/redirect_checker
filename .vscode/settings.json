@@ -1,3 +1,10 @@
 {
-    "python.pythonPath": "c:\\Users\\e313532\\Documents\\Projects\\redirect_checker\\.venv\\Scripts\\python.exe"
+    "python.pythonPath": "c:\\Users\\e313532\\Documents\\Projects\\redirect_checker\\.venv\\Scripts\\python.exe",
+    "python.testing.pytestPath": ".venv\\Scripts\\pytest",
+    "python.testing.pytestEnabled": true,
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "file",
+    "editor.formatOnType": true,
+    "python.formatting.provider": "black",
+    "python.formatting.blackPath": "~\\.local\\bin\\black"
 }
