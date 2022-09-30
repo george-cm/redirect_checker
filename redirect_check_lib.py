@@ -1,24 +1,47 @@
-from typing import Callable, List, Tuple, Iterable
+# from curses.ascii import HT
+from http.client import TOO_MANY_REQUESTS
+from typing import Callable, List, Optional, Tuple, Iterable, Union
+from unittest import removeResult
 from requests_html import AsyncHTMLSession, HTMLResponse, requests
 import logging
+from dataclasses import dataclass, field
 
 # Suppress only the single warning from urllib3 needed.
-requests.packages.urllib3.disable_warnings(category=requests.packages.urllib3.exceptions.InsecureRequestWarning)
+requests.packages.urllib3.disable_warnings(category=requests.packages.urllib3.exceptions.InsecureRequestWarning)  # type: ignore
 MAX_REDIRECTS = 10
 SourceUrl = str
-StatusCode = str
+StatusCode = Union[str, int]
 RedirectChain = str
 
-def create_head_request(assession: AsyncHTMLSession, url: str, auth:Tuple[str, str]=None) -> Callable:
+@dataclass()
+class TooManyRedirectsResponse(HTMLResponse):
+    status_code = 'too many redirects' # type: ignore
+    history: Optional[list[HTMLResponse]] = field(default_factory=list)
+
+@dataclass()
+class EmptySourceUrlResponse(HTMLResponse):
+    status_code = 'source url is missing' # type: ignore
+    history: Optional[list[HTMLResponse]] = field(default_factory=list)
+
+@dataclass()
+class ConnectionErrorResponse(HTMLResponse):
+    status_code = 'connection error' # type: ignore
+    history: Optional[list[HTMLResponse]] = field(default_factory=list)
+
+def create_head_request(assession: AsyncHTMLSession, url: str, auth:Optional[Tuple[str, str]]=None) -> Callable:
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
     logger.info(f'Adding request for {url}')
     async def head_request() -> Tuple[str, HTMLResponse]:
         logger.info(f"Making head request for {url}")
         try:
-            r = await assession.head(url, verify=False, auth=auth, allow_redirects=True)
-        except requests.exceptions.TooManyRedirects:
-            return TooManyRedirectsResponse()
+            r = await assession.head(url, verify=False, auth=auth, allow_redirects=True)  # type: ignore
+        except requests.exceptions.TooManyRedirects as e:
+            logger.exception(e)
+            return url, TooManyRedirectsResponse()
+        except requests.exceptions.ConnectionError as e:
+            logger.exception(e)
+            return url, ConnectionErrorResponse()
         except Exception as e:
             logger.exception(e)
             raise e
@@ -37,29 +60,21 @@ def request_head_urls(urls: Iterable[str]) -> List[Tuple[str, HTMLResponse]]:
 def check_redirect(response: Tuple[str, HTMLResponse]) -> Tuple[SourceUrl, StatusCode, RedirectChain]:
     redirect_chain = []
     if len(response[1].history) != 0:
+        
         for res in response[1].history:
             Location = res.headers['Location'].rstrip('/')
-            redirect_chain.append(f"{res.status_code}::{Location}")
+            redirect_chain.append(f"{res.status_code}::{res.url}")
         if len(response[1].history) == 1:
-            status_code = res.status_code
+            # status_code = response[1].status_code
+            status_code = response[1].history[0].status_code
         else:
             status_code = 'multiple'
+        redirect_chain.append(f"{response[1].status_code}::{response[1].url}")
         result = (response[0], status_code, '|'.join(redirect_chain))
     else:
         result = (response[0], response[1].status_code, '')
     return result
 
-class TooManyRedirectsResponse(requests.Response):
-
-    def __init__(self):
-        self.status_code = 'too many redirects'
-        self.history = []
-
-class EmptySourceUrlResponse(requests.Response):
-
-    def __init__(self):
-        self.status_code = 'source url is missing'
-        self.history = []
 
 def get_logger(log_file=None):
     if not log_file:
