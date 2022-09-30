@@ -2,6 +2,7 @@
 from http.client import TOO_MANY_REQUESTS
 from typing import Callable, List, Optional, Tuple, Iterable, Union
 from unittest import removeResult
+from urllib import response
 from requests_html import AsyncHTMLSession, HTMLResponse, requests
 import logging
 from dataclasses import dataclass, field
@@ -15,8 +16,9 @@ RedirectChain = str
 
 @dataclass()
 class TooManyRedirectsResponse(HTMLResponse):
-    status_code = 'too many redirects' # type: ignore
+    url: str
     history: Optional[list[HTMLResponse]] = field(default_factory=list)
+    status_code = 'too many redirects' # type: ignore
 
 @dataclass()
 class EmptySourceUrlResponse(HTMLResponse):
@@ -38,7 +40,7 @@ def create_head_request(assession: AsyncHTMLSession, url: str, auth:Optional[Tup
             r = await assession.head(url, verify=False, auth=auth, allow_redirects=True)  # type: ignore
         except requests.exceptions.TooManyRedirects as e:
             logger.exception(e)
-            return url, TooManyRedirectsResponse()
+            return url, TooManyRedirectsResponse(history=[e.response] + e.response.history, url=e.response.url)
         except requests.exceptions.ConnectionError as e:
             logger.exception(e)
             return url, ConnectionErrorResponse()
