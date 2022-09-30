@@ -11,13 +11,14 @@
       "request": "launch",
       "program": "${file}",
       "console": "integratedTerminal",
-      "python": "${workspaceFolder}/Scripts/python.exe",
-      "args": [
-        "c:\\Users\\e313532\\Documents\\Projects\\aem_dam\\dispatcher\\redirects_test\\tests_all_redirects.csv",
-        "-l=c:\\Users\\e313532\\Documents\\Projects\\aem_dam\\dispatcher\\redirects_test\\tests_all_redirects.csv.log",
-        "-sr=https://mysafety.honeywell.com!!https://dpublish-his.aws.aem.honeywell.com",
-        "-tr=https://mysafety.honeywell.com!!https://dpublish-his.aws.aem.honeywell.com",  
-      ]
+      // "python": "${workspaceFolder}/Scripts/python.exe",
+      // "args": [
+      //   "c:\\Users\\e313532\\Documents\\Projects\\aem_dam\\dispatcher\\redirects_test\\tests_all_redirects.csv",
+      //   "-l=c:\\Users\\e313532\\Documents\\Projects\\aem_dam\\dispatcher\\redirects_test\\tests_all_redirects.csv.log",
+      //   "-sr=https://mysafety.honeywell.com!!https://dpublish-his.aws.aem.honeywell.com",
+      //   "-tr=https://mysafety.honeywell.com!!https://dpublish-his.aws.aem.honeywell.com",  
+      // ],
+      "justMyCode": false
     }
   ]
 }
